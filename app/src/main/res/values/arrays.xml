@@ -13,4 +13,16 @@
         <item>10000</item>
     </string-array>
 
+    <string-array name="color_name">
+        <item>Blue</item>
+        <item>Red</item>
+        <item>Black</item>
+    </string-array>
+
+    <string-array name="color_value">
+        <item>#FF134DE1</item>
+        <item>#FFF44336</item>
+        <item>#FF000000</item>
+    </string-array>
+
 </resources>
