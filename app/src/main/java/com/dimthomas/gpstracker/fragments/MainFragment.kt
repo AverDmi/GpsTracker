@@ -2,6 +2,7 @@ package com.dimthomas.gpstracker.fragments
 
 import android.Manifest
 import android.content.Context
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -68,6 +69,7 @@ class MainFragment : Fragment() {
         ) {
             if (it[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
                 initOSM()
+                checkLocationEnabled()
             } else {
                 Toast.makeText(
                     context,
@@ -92,6 +94,7 @@ class MainFragment : Fragment() {
             && checkPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         ) {
             initOSM()
+            checkLocationEnabled()
         } else {
             pLauncher.launch(
                 arrayOf(
@@ -106,12 +109,23 @@ class MainFragment : Fragment() {
         if (checkPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         ) {
             initOSM()
+            checkLocationEnabled()
         } else {
             pLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
         }
     }
 
-    companion object {
+    private fun checkLocationEnabled() {
+        val lManager = activity?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isEnabled = lManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (!isEnabled) {
+            Toast.makeText(context, "GPS выключен", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Location enabled", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+            companion object {
         @JvmStatic
         fun newInstance() = MainFragment()
     }
