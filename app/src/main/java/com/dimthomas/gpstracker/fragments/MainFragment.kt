@@ -2,9 +2,11 @@ package com.dimthomas.gpstracker.fragments
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +18,7 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.FragmentMainBinding
+import com.dimthomas.gpstracker.utils.DialogManager
 import com.dimthomas.gpstracker.utils.checkPermission
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
@@ -40,6 +43,10 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         registerPermissions()
+    }
+
+    override fun onResume() {
+        super.onResume()
         checkLocPermission()
     }
 
@@ -119,13 +126,20 @@ class MainFragment : Fragment() {
         val lManager = activity?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val isEnabled = lManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         if (!isEnabled) {
-            Toast.makeText(context, "GPS выключен", Toast.LENGTH_SHORT).show()
+            DialogManager.showLocEnabledDialog(
+                activity as AppCompatActivity,
+                object : DialogManager.Listener {
+                    override fun onClick() {
+                        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    }
+                }
+            )
         } else {
             Toast.makeText(context, "Location enabled", Toast.LENGTH_SHORT).show()
         }
     }
 
-            companion object {
+    companion object {
         @JvmStatic
         fun newInstance() = MainFragment()
     }
