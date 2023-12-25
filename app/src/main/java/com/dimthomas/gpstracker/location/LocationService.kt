@@ -64,5 +64,6 @@ class LocationService : Service() {
         const val CHANNEL_ID = "channel_1"
         const val REQUEST_CODE = 10
         var isRunning = false
+        var startTime = 0L
     }
 }
