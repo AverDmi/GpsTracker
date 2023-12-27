@@ -1,34 +1,58 @@
 package com.dimthomas.gpstracker.location
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import com.dimthomas.gpstracker.MainActivity
 import com.dimthomas.gpstracker.R
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
 
 class LocationService : Service() {
+
+    private lateinit var locProvider: FusedLocationProviderClient
+    private lateinit var locRequest: LocationRequest
+
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startNotification()
+        startLocationUpdates()
         isRunning = true
         return START_STICKY
     }
 
     override fun onCreate() {
         super.onCreate()
+        initLocation()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        locProvider.removeLocationUpdates(locCallBack)
+    }
+
+    private val locCallBack = object : LocationCallback() {
+        override fun onLocationResult(lResult: LocationResult) {
+            super.onLocationResult(lResult)
+        }
     }
 
     private fun startNotification() {
@@ -56,8 +80,27 @@ class LocationService : Service() {
             .setContentTitle("Tracker Running!")
             .setContentIntent(pIntent)
             .build()
-
         startForeground(99, notification)
+    }
+
+    private fun initLocation() {
+        locRequest = LocationRequest.Builder(PRIORITY_HIGH_ACCURACY, 5000)
+            .setMinUpdateIntervalMillis(5000)
+            .build()
+        locProvider = LocationServices.getFusedLocationProviderClient(baseContext)
+    }
+
+    private fun startLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return
+        locProvider.requestLocationUpdates(
+            locRequest,
+            locCallBack,
+            Looper.myLooper()
+        )
     }
 
     companion object {
