@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -24,6 +25,8 @@ import com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY
 
 class LocationService : Service() {
 
+    private var distance = 0.0f
+    private var lastLocation: Location? = null
     private lateinit var locProvider: FusedLocationProviderClient
     private lateinit var locRequest: LocationRequest
 
@@ -52,6 +55,12 @@ class LocationService : Service() {
     private val locCallBack = object : LocationCallback() {
         override fun onLocationResult(lResult: LocationResult) {
             super.onLocationResult(lResult)
+            val currentLocation = lResult.lastLocation
+            if (lastLocation != null && currentLocation != null) {
+                distance += lastLocation?.distanceTo(currentLocation)!!
+            }
+            lastLocation = currentLocation
+            Log.d("MyLog", "Distance: $distance")
         }
     }
 
