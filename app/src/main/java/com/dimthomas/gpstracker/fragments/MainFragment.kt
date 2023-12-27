@@ -1,12 +1,15 @@
 package com.dimthomas.gpstracker.fragments
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -18,8 +21,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.FragmentMainBinding
+import com.dimthomas.gpstracker.location.LocationModel
 import com.dimthomas.gpstracker.location.LocationService
 import com.dimthomas.gpstracker.utils.DialogManager
 import com.dimthomas.gpstracker.utils.TimeUtils
@@ -56,6 +61,7 @@ class MainFragment : Fragment() {
         setOnClicks()
         checkServiceState()
         updateTime()
+        registerLocReceiver()
     }
 
     private fun setOnClicks() = with(binding) {
@@ -217,6 +223,25 @@ class MainFragment : Fragment() {
         } else {
             Toast.makeText(context, "Location enabled", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == LocationService.LOC_MODEL_INTENT) {
+                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+                } else {
+                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
+                }
+                Log.d("TAG", "MF Distance: ${locModel?.distance}")
+            }
+        }
+    }
+
+    private fun registerLocReceiver() {
+        val locFilter = IntentFilter(LocationService.LOC_MODEL_INTENT)
+        LocalBroadcastManager.getInstance(activity as AppCompatActivity)
+            .registerReceiver(receiver, locFilter)
     }
 
     companion object {
