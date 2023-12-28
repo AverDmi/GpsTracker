@@ -20,8 +20,10 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.dimthomas.gpstracker.MainViewModel
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.FragmentMainBinding
 import com.dimthomas.gpstracker.location.LocationModel
@@ -42,9 +44,9 @@ class MainFragment : Fragment() {
     private var isServiceRunning = false
     private var timer: Timer? = null
     private var startTime = 0L
-    private val timeData = MutableLiveData<String>()
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
+    private val model: MainViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -62,6 +64,7 @@ class MainFragment : Fragment() {
         checkServiceState()
         updateTime()
         registerLocReceiver()
+        locationUpdates()
     }
 
     private fun setOnClicks() = with(binding) {
@@ -77,8 +80,17 @@ class MainFragment : Fragment() {
         }
     }
 
+    private fun locationUpdates() = with(binding) {
+        model.locationUpdates.observe(viewLifecycleOwner) {
+            val distance = "Distance: ${String.format("%1.f", it.distance)} m"
+            val velocity = "Velocity: ${String.format("%1.f", 3.6 * it.velocity)} km/h"
+            distanceTv.text = distance
+            velocityTv.text = velocity
+        }
+    }
+
     private fun updateTime() {
-        timeData.observe(viewLifecycleOwner) {
+        model.timeData.observe(viewLifecycleOwner) {
             binding.timeTv.text = it
         }
     }
@@ -90,7 +102,7 @@ class MainFragment : Fragment() {
         timer?.schedule(object : TimerTask() {
             override fun run() {
                 activity?.runOnUiThread {
-                    timeData.value = getCurrentTime()
+                    model.timeData.value = getCurrentTime()
                 }
             }
 
@@ -226,14 +238,11 @@ class MainFragment : Fragment() {
     }
 
     private val receiver = object : BroadcastReceiver() {
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == LocationService.LOC_MODEL_INTENT) {
-                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
-                } else {
-                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
-                }
-                Log.d("TAG", "MF Distance: ${locModel?.distance}")
+                val locModel = intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+                model.locationUpdates.value = locModel
             }
         }
     }
