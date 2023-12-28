@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
@@ -34,6 +35,7 @@ import com.dimthomas.gpstracker.utils.checkPermission
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.Timer
@@ -41,7 +43,9 @@ import java.util.TimerTask
 
 class MainFragment : Fragment() {
 
+    private var pl: Polyline? = null
     private var isServiceRunning = false
+    private var firstStart = true
     private var timer: Timer? = null
     private var startTime = 0L
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
@@ -82,10 +86,13 @@ class MainFragment : Fragment() {
 
     private fun locationUpdates() = with(binding) {
         model.locationUpdates.observe(viewLifecycleOwner) {
-            val distance = "Distance: ${String.format("%1.f", it.distance)} m"
-            val velocity = "Velocity: ${String.format("%1.f", 3.6 * it.velocity)} km/h"
+            val distance = "Distance: ${String.format("%.1f", it.distance)} m"
+            val velocity = "Velocity: ${String.format("%.1f", 3.6f * it.velocity)} km/h"
+            val aVelocity = "Average Velocity: ${getAverageSpeed(it.distance)} km/h"
             distanceTv.text = distance
             velocityTv.text = velocity
+            averageVelTv.text = aVelocity
+            updatePolyLine(it.geoPointsList)
         }
     }
 
@@ -107,6 +114,10 @@ class MainFragment : Fragment() {
             }
 
         }, 1000, 1000)
+    }
+
+    private fun getAverageSpeed(distance: Float): String {
+        return String.format("%.1f", 3.6f * ((distance / (System.currentTimeMillis() - startTime) /  1000.0f)))
     }
 
     private fun getCurrentTime(): String {
@@ -133,11 +144,7 @@ class MainFragment : Fragment() {
     }
 
     private fun startLocService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            activity?.startForegroundService(Intent(activity, LocationService::class.java))
-        } else {
-            activity?.startService(Intent(activity, LocationService::class.java))
-        }
+        activity?.startForegroundService(Intent(activity, LocationService::class.java))
         binding.fStartStop.setImageResource(R.drawable.ic_stop)
         LocationService.startTime = System.currentTimeMillis()
         startTimer()
@@ -157,6 +164,8 @@ class MainFragment : Fragment() {
     }
 
     private fun initOSM() = with(binding) {
+        pl = Polyline()
+        pl?.outlinePaint?.color = Color.BLUE
         map.controller.setZoom(15.0)
         val mLocProvider = GpsMyLocationProvider(activity)
         val mLocOverlay = MyLocationNewOverlay(mLocProvider, map)
@@ -165,6 +174,7 @@ class MainFragment : Fragment() {
         mLocOverlay.runOnFirstFix {
             map.overlays.clear()
             map.overlays.add(mLocOverlay)
+            map.overlays.add(pl)
         }
     }
 
@@ -238,10 +248,13 @@ class MainFragment : Fragment() {
     }
 
     private val receiver = object : BroadcastReceiver() {
-        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == LocationService.LOC_MODEL_INTENT) {
-                val locModel = intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+                } else {
+                    intent.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
+                }
                 model.locationUpdates.value = locModel
             }
         }
@@ -251,6 +264,31 @@ class MainFragment : Fragment() {
         val locFilter = IntentFilter(LocationService.LOC_MODEL_INTENT)
         LocalBroadcastManager.getInstance(activity as AppCompatActivity)
             .registerReceiver(receiver, locFilter)
+    }
+
+    private fun addPoint(list: List<GeoPoint>) {
+        pl?.addPoint(list[list.size - 1])
+    }
+
+    private fun fillPolyLine(list: List<GeoPoint>) {
+        list.forEach {
+            pl?.addPoint(it)
+        }
+    }
+
+    private fun updatePolyLine(list: List<GeoPoint>) {
+        if (list.size > 1 && firstStart) {
+            fillPolyLine(list)
+            firstStart = false
+        } else {
+            addPoint(list)
+        }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        LocalBroadcastManager.getInstance(activity as AppCompatActivity)
+            .unregisterReceiver(receiver)
     }
 
     companion object {

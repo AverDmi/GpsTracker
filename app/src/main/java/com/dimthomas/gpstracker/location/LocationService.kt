@@ -71,7 +71,6 @@ class LocationService : Service() {
                 sendLocData(locModel)
             }
             lastLocation = currentLocation
-            Log.d("MyLog", "Distance: $distance")
         }
     }
 
@@ -82,15 +81,13 @@ class LocationService : Service() {
     }
 
     private fun startNotification() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val nChanel = NotificationChannel(
-                CHANNEL_ID,
-                "Location Service",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
-            val nManager = getSystemService(NotificationManager::class.java) as NotificationManager
-            nManager.createNotificationChannel(nChanel)
-        }
+        val nChanel = NotificationChannel(
+            CHANNEL_ID,
+            "Location Service",
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val nManager = getSystemService(NotificationManager::class.java) as NotificationManager
+        nManager.createNotificationChannel(nChanel)
 
         val nIntent = Intent(this, MainActivity::class.java)
         val pIntent = PendingIntent.getActivity(
