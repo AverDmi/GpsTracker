@@ -39,12 +39,13 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.lang.StringBuilder
 import java.util.Timer
 import java.util.TimerTask
 
 class MainFragment : Fragment() {
 
-    private var trackItem: TrackItem? = null
+    private var locationModel: LocationModel? = null
     private var pl: Polyline? = null
     private var isServiceRunning = false
     private var firstStart = true
@@ -94,14 +95,7 @@ class MainFragment : Fragment() {
             distanceTv.text = distance
             velocityTv.text = velocity
             averageVelTv.text = aVelocity
-            trackItem = TrackItem(
-                null,
-                getCurrentTime(),
-                TimeUtils.getDate(),
-                String.format("%.1f", it.distance / 1000),
-                getAverageSpeed(it.distance),
-                ""
-            )
+            locationModel = it
             updatePolyLine(it.geoPointsList)
         }
     }
@@ -134,6 +128,15 @@ class MainFragment : Fragment() {
         return "Time: ${TimeUtils.getTime(System.currentTimeMillis() - startTime)}"
     }
 
+    private fun geoPointsToString(list: List<GeoPoint>): String {
+        val sb = StringBuilder()
+        list.forEach {
+            sb.append("${it.latitude},${it.longitude}/")
+        }
+        Log.d("TAG", "Points: $sb")
+        return sb.toString()
+    }
+
     private fun startStopService() {
         if (!isServiceRunning) {
             startLocService()
@@ -142,7 +145,7 @@ class MainFragment : Fragment() {
             binding.fStartStop.setImageResource(R.drawable.ic_play)
             timer?.cancel()
             DialogManager.showSaveDialog(requireContext(),
-                trackItem,
+                getTrackItem(),
                 object : DialogManager.Listener {
                 override fun onClick() {
                     Toast.makeText(context, "Track has been saved!", Toast.LENGTH_SHORT).show()
@@ -150,6 +153,17 @@ class MainFragment : Fragment() {
             })
         }
         isServiceRunning = !isServiceRunning
+    }
+
+    private fun getTrackItem(): TrackItem {
+        return TrackItem(
+            null,
+            getCurrentTime(),
+            TimeUtils.getDate(),
+            String.format("%.1f", locationModel?.distance?.div(1000) ?: 0),
+            getAverageSpeed(locationModel?.distance ?: 0.0f),
+            geoPointsToString(locationModel?.geoPointsList ?: emptyList())
+        )
     }
 
     private fun checkServiceState() {
