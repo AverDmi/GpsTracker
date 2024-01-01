@@ -27,6 +27,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.dimthomas.gpstracker.MainViewModel
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.FragmentMainBinding
+import com.dimthomas.gpstracker.db.TrackItem
 import com.dimthomas.gpstracker.location.LocationModel
 import com.dimthomas.gpstracker.location.LocationService
 import com.dimthomas.gpstracker.utils.DialogManager
@@ -43,6 +44,7 @@ import java.util.TimerTask
 
 class MainFragment : Fragment() {
 
+    private var trackItem: TrackItem? = null
     private var pl: Polyline? = null
     private var isServiceRunning = false
     private var firstStart = true
@@ -92,6 +94,14 @@ class MainFragment : Fragment() {
             distanceTv.text = distance
             velocityTv.text = velocity
             averageVelTv.text = aVelocity
+            trackItem = TrackItem(
+                null,
+                getCurrentTime(),
+                TimeUtils.getDate(),
+                String.format("%.1f", it.distance / 1000),
+                getAverageSpeed(it.distance),
+                ""
+            )
             updatePolyLine(it.geoPointsList)
         }
     }
@@ -131,7 +141,9 @@ class MainFragment : Fragment() {
             activity?.stopService(Intent(activity, LocationService::class.java))
             binding.fStartStop.setImageResource(R.drawable.ic_play)
             timer?.cancel()
-            DialogManager.showSaveDialog(requireContext(), object : DialogManager.Listener {
+            DialogManager.showSaveDialog(requireContext(),
+                trackItem,
+                object : DialogManager.Listener {
                 override fun onClick() {
                     Toast.makeText(context, "Track has been saved!", Toast.LENGTH_SHORT).show()
                 }

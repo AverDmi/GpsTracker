@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.SaveDialogBinding
+import com.dimthomas.gpstracker.db.TrackItem
 
 object DialogManager {
 
@@ -25,12 +26,20 @@ object DialogManager {
         dialog.show()
     }
 
-    fun showSaveDialog(context: Context, listener: Listener) {
+    fun showSaveDialog(context: Context, item: TrackItem?, listener: Listener) {
         val builder = AlertDialog.Builder(context)
         val binding = SaveDialogBinding.inflate(LayoutInflater.from(context), null, false)
         builder.setView(binding.root)
         val dialog = builder.create()
         binding.apply {
+
+            val time = "${item?.time}"
+            val velocity = "Speed: ${item?.velocity} km/h"
+            val distance = "Distance: ${item?.distance} km"
+            timeTv.text = time
+            speedTv.text = velocity
+            distanceTv.text = distance
+
             saveBtn.setOnClickListener {
                 listener.onClick()
                 dialog.dismiss()
