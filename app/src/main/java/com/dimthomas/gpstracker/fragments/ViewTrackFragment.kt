@@ -1,6 +1,7 @@
 package com.dimthomas.gpstracker.fragments
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.content.res.AppCompatResources.getDrawable
 import androidx.fragment.app.activityViewModels
+import androidx.preference.PreferenceManager
 import com.dimthomas.gpstracker.MainApp
 import com.dimthomas.gpstracker.MainViewModel
 import com.dimthomas.gpstracker.R
@@ -22,6 +24,7 @@ import org.osmdroid.views.overlay.Polyline
 
 class ViewTrackFragment : Fragment() {
 
+    private var startPoint: GeoPoint? = null
     private lateinit var binding: FragmentViewTrackBinding
     private val model: MainViewModel by activityViewModels {
         MainViewModel.ViewModelFactory((requireContext().applicationContext as MainApp).database)
@@ -39,6 +42,9 @@ class ViewTrackFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         getTrack()
+        binding.fCenter.setOnClickListener {
+            if (startPoint != null) binding.map.controller.animateTo(startPoint)
+        }
     }
 
     private fun getTrack() = with(binding) {
@@ -54,6 +60,7 @@ class ViewTrackFragment : Fragment() {
             map.overlays.add(polyline)
             setMarkers(polyline.actualPoints)
             goToStartPosition(polyline.actualPoints[0])
+            startPoint = polyline.actualPoints[0]
         }
     }
 
@@ -77,6 +84,10 @@ class ViewTrackFragment : Fragment() {
 
     private fun getPolyline(geoPoints: String): Polyline {
         val polyline = Polyline()
+        polyline.outlinePaint.color = Color.parseColor(
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getString("color_key", "#FF134DE1")
+        )
         val list = geoPoints.split("/")
         list.forEach {
             if (it.isEmpty()) return@forEach

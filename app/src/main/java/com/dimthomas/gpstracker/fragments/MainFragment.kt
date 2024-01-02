@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.preference.PreferenceManager
 import com.dimthomas.gpstracker.MainApp
 import com.dimthomas.gpstracker.MainViewModel
 import com.dimthomas.gpstracker.R
@@ -52,6 +53,7 @@ class MainFragment : Fragment() {
     private var firstStart = true
     private var timer: Timer? = null
     private var startTime = 0L
+    private lateinit var mLocOverlay: MyLocationNewOverlay
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
     private val model: MainViewModel by activityViewModels {
@@ -80,14 +82,21 @@ class MainFragment : Fragment() {
     private fun setOnClicks() = with(binding) {
         val listener = onClicks()
         fStartStop.setOnClickListener(listener)
+        fCenter.setOnClickListener(listener)
     }
 
     private fun onClicks(): OnClickListener {
         return OnClickListener {
             when(it.id) {
                 R.id.fStartStop -> startStopService()
+                R.id.fCenter -> centerLocation()
             }
         }
+    }
+
+    private fun centerLocation() {
+        binding.map.controller.animateTo(mLocOverlay.myLocation)
+        mLocOverlay.enableFollowLocation()
     }
 
     private fun locationUpdates() = with(binding) {
@@ -188,6 +197,7 @@ class MainFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         checkLocPermission()
+        firstStart = true
     }
 
     private fun settingsOsm() {
@@ -200,7 +210,10 @@ class MainFragment : Fragment() {
 
     private fun initOSM() = with(binding) {
         pl = Polyline()
-        pl?.outlinePaint?.color = Color.BLUE
+        pl?.outlinePaint?.color = Color.parseColor(
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .getString("color_key", "#FF134DE1")
+        )
         map.controller.setZoom(15.0)
         val mLocProvider = GpsMyLocationProvider(activity)
         val mLocOverlay = MyLocationNewOverlay(mLocProvider, map)
@@ -208,8 +221,8 @@ class MainFragment : Fragment() {
         mLocOverlay.enableFollowLocation()
         mLocOverlay.runOnFirstFix {
             map.overlays.clear()
-            map.overlays.add(mLocOverlay)
             map.overlays.add(pl)
+            map.overlays.add(mLocOverlay)
         }
     }
 
@@ -277,8 +290,6 @@ class MainFragment : Fragment() {
                     }
                 }
             )
-        } else {
-            Toast.makeText(context, "Location enabled", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -302,7 +313,7 @@ class MainFragment : Fragment() {
     }
 
     private fun addPoint(list: List<GeoPoint>) {
-        pl?.addPoint(list[list.size - 1])
+        if (list.isNotEmpty()) pl?.addPoint(list[list.size - 1])
     }
 
     private fun fillPolyLine(list: List<GeoPoint>) {
