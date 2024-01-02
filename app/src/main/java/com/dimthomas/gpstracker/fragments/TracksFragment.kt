@@ -16,6 +16,7 @@ import com.dimthomas.gpstracker.databinding.FragmentTracksBinding
 import com.dimthomas.gpstracker.databinding.FragmentViewTrackBinding
 import com.dimthomas.gpstracker.db.TrackAdapter
 import com.dimthomas.gpstracker.db.TrackItem
+import com.dimthomas.gpstracker.utils.openFragment
 
 class TracksFragment : Fragment(), TrackAdapter.Listener {
 
@@ -57,7 +58,14 @@ class TracksFragment : Fragment(), TrackAdapter.Listener {
         fun newInstance() = TracksFragment()
     }
 
-    override fun onClick(trackItem: TrackItem) {
-        model.deleteTrack(trackItem)
+    override fun onClick(trackItem: TrackItem, type: TrackAdapter.ClickType) {
+
+        when(type) {
+            TrackAdapter.ClickType.DELETE -> model.deleteTrack(trackItem)
+            TrackAdapter.ClickType.OPEN -> {
+                model.currentTrack.value = trackItem
+                openFragment(ViewTrackFragment.newInstance())
+            }
+        }
     }
 }

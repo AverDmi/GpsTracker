@@ -19,6 +19,7 @@ class TrackAdapter(private val listener: Listener): ListAdapter<TrackItem, Track
 
         init {
             binding.deleteIbtn.setOnClickListener(this)
+            binding.item.setOnClickListener(this)
         }
 
         fun bind(trackItem: TrackItem) = with(binding) {
@@ -31,8 +32,14 @@ class TrackAdapter(private val listener: Listener): ListAdapter<TrackItem, Track
             distanceTv.text = distance
         }
 
-        override fun onClick(p0: View?) {
-            trackTemp?.let { listener.onClick(it) }
+        override fun onClick(view: View) {
+            val type = when(view.id) {
+                R.id.delete_ibtn -> ClickType.DELETE
+                R.id.item -> ClickType.OPEN
+                else -> ClickType.OPEN
+            }
+            trackTemp?.let { listener.onClick(it, type) }
+
         }
     }
 
@@ -58,6 +65,11 @@ class TrackAdapter(private val listener: Listener): ListAdapter<TrackItem, Track
     }
 
     interface Listener {
-        fun onClick(trackItem: TrackItem)
+        fun onClick(trackItem: TrackItem, type: ClickType)
+    }
+
+    enum class ClickType {
+        DELETE,
+        OPEN
     }
 }

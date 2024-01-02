@@ -13,8 +13,9 @@ import kotlinx.coroutines.launch
 @Suppress("UNCHECKED_CAST")
 class MainViewModel(db: MainDb): ViewModel() {
 
-    val dao = db.getDao()
+    private val dao = db.getDao()
     val locationUpdates = MutableLiveData<LocationModel>()
+    val currentTrack = MutableLiveData<TrackItem>()
     val timeData = MutableLiveData<String>()
     val tracks = dao.getAllTracks().asLiveData()
 
