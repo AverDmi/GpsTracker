@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.dimthomas.gpstracker.MainApp
 import com.dimthomas.gpstracker.MainViewModel
 import com.dimthomas.gpstracker.R
 import com.dimthomas.gpstracker.databinding.FragmentMainBinding
@@ -53,7 +54,9 @@ class MainFragment : Fragment() {
     private var startTime = 0L
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
-    private val model: MainViewModel by activityViewModels()
+    private val model: MainViewModel by activityViewModels {
+        MainViewModel.ViewModelFactory((requireContext().applicationContext as MainApp).database)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -72,6 +75,9 @@ class MainFragment : Fragment() {
         updateTime()
         registerLocReceiver()
         locationUpdates()
+        model.tracks.observe(viewLifecycleOwner) {
+            Log.d("TAG", "List size: ${it.size} ")
+        }
     }
 
     private fun setOnClicks() = with(binding) {
@@ -133,7 +139,6 @@ class MainFragment : Fragment() {
         list.forEach {
             sb.append("${it.latitude},${it.longitude}/")
         }
-        Log.d("TAG", "Points: $sb")
         return sb.toString()
     }
 
@@ -144,11 +149,13 @@ class MainFragment : Fragment() {
             activity?.stopService(Intent(activity, LocationService::class.java))
             binding.fStartStop.setImageResource(R.drawable.ic_play)
             timer?.cancel()
+            val track = getTrackItem()
             DialogManager.showSaveDialog(requireContext(),
-                getTrackItem(),
+                track,
                 object : DialogManager.Listener {
                 override fun onClick() {
                     Toast.makeText(context, "Track has been saved!", Toast.LENGTH_SHORT).show()
+                    model.insertTrack(track)
                 }
             })
         }
